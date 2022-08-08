@@ -22,5 +22,5 @@ from(
         join (select author_id, paper_id from paper_author) as pa
         on pa.paper_id == reference_year_citation.reference_paper_id) as auth_paper_year_cit
     group by auth_paper_year_cit.author_id, auth_paper_year_cit.year) as auth_year_citation
-join (select author_id, substr(published_at,0,5) as year, count(paper_id) as publication_count from paper_author group by author_id, year) as auth_year_pub
+left join (select author_id, substr(published_at,0,5) as year, count(paper_id) as publication_count from paper_author group by author_id, year) as auth_year_pub
 on auth_year_citation.author_id == auth_year_pub.author_id and auth_year_pub.year == auth_year_citation.year;
