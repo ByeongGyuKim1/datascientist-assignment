@@ -1,52 +1,21 @@
 -- ANSWER 5
 
-select author_id, citation_number as h5_index
+select author_id, min(citation_count) as h_index
 from(
-    select auth_paper_cit.*, row_number() over (partition by author_id order by citation_number desc) as rank
-    from(
-        select author_id, paper_id, citation_number
-        from paper_author
-        left join(
-            select ref_cit_per_year.reference_paper_id, sum(case when year >= 2018 then citation_number end) as citation_number
-            from (select bothpaperid_year.reference_paper_id,
-                         bothpaperid_year.paper_publish_at as year,
-                         count(paper_publish_at)           as citation_number
-                  from (select table1.paper_id, cast(table2.year as integer) as paper_publish_at, table1.reference_paper_id,
-                               cast(table1.reference_publish_year as integer) as reference_publish_at
-                        from (select t1.paper_id, t1.reference_paper_id, t2.year as reference_publish_year
-                              from paper_reference as t1
-                                       join (select paper_id, substr(published_at, 0, 5) as year from paper_author) as t2
-                                            on t1.reference_paper_id == t2.paper_id
-                              group by t1.paper_id, t1.reference_paper_id) as table1
-                                 join (select paper_id, substr(published_at, 0, 5) as year from paper_author) as table2
-                                      on table1.paper_id == table2.paper_id
-                        group by table1.paper_id, table1.reference_paper_id) as bothpaperid_year
-                  group by reference_paper_id, paper_publish_at) as ref_cit_per_year
-            group by ref_cit_per_year.reference_paper_id) as ref_cit
-        on paper_id == ref_cit.reference_paper_id) as auth_paper_cit) /*저자가 쓴 논문이 몇번 인용되었는지 순서대로 나열*/
-where citation_number <= rank + 1
-group by author_id
-
-
-/*
-select author_id, citation_number as h_index
+select auth_paper_cit.*, row_number() over (partition by author_id order by citation_count desc) as rank
 from(
-    select auth_paper_cit.*, row_number() over (partition by author_id order by citation_number desc) as rank
-    from(
-        select author_id, paper_id, citation_number
-        from paper_author
-        left join(
-                select paper_ref_refyear.reference_paper_id, count(reference_paper_id) as citation_number
-                from( -- 2022년은 포함이 안된다?
-                    select t1.paper_id, t1.reference_paper_id, cast(t2.year as int) as reference_publish_year from paper_reference as t1
-                    left join (select paper_id, substr(published_at, 0, 5) as year from paper_author) as t2
-                    on t1.reference_paper_id == t2.paper_id
-                    group by t1.paper_id, t1.reference_paper_id) as paper_ref_refyear
-
-                group by paper_ref_refyear.reference_paper_id) as ref_cit
-        on paper_id == ref_cit.reference_paper_id) as auth_paper_cit) as auth_citrank
-where citation_number <= rank + 1
+    select pa.author_id, pa.paper_id, prc.citation_count as citation_count
+    from (select author_id, paper_id, cast(substr(published_at, 0, 5) as integer) as year from paper_author
+          where year > cast(substr(date('now'),0,5) as integer) - 5 ) as pa
+    left join(
+        select pr.reference_paper_id, count(pr.paper_id) as citation_count from paper_reference as pr
+        join(
+            select paper_id, cast(substr(published_at, 0, 5) as integer) as year from paper_author
+            where year > cast(substr(date('now'),0,5) as integer) - 5
+            group by paper_id) as paper_pubyear on paper_pubyear.paper_id == pr.paper_id
+        group by reference_paper_id) as prc on pa.paper_id == prc.reference_paper_id
+    group by pa.author_id, pa.paper_id) as auth_paper_cit) /*저자가 쓴 논문이 몇번 인용되었는지 순서대로 나열*/
+where citation_count >= rank
 group by author_id
-*/
 
 -- 각 저자의 h5-index 를 구하는 쿼리를 작성하세요. (author_id<string>, h5index<int>)
