@@ -2,8 +2,6 @@ import pandas as pd
 
 
 def answer1():
-    import pandas as pd
-
     publish_count = pd.read_csv('paper_author.csv')['author_id'].value_counts().to_frame().reset_index().rename(
         columns={'index': 'author_id', 'author_id': 'publish_count'})
     citation_count = pd.read_csv('paper_reference.csv')[
@@ -13,11 +11,14 @@ def answer1():
         "citation_count"].sum().to_frame()
     answer = publish_count.merge(sum_cit, how='outer', on='author_id').astype(
         {"author_id": "string", "publish_count": "int", "citation_count": "int"})
-    answer
 
 
 def answer2():
-    pass
+    paper_author_df = pd.read_csv('paper_author.csv')
+    paper_reference_df = pd.read_csv('paper_reference.csv')
+
+    paper_author_df['published_year'] = paper_author_df['published_at'].str.slice(start=0, stop=4)
+    paper_author_df.merge(paper_reference_df, how="left", left_on='paper_id', right_on='reference_paper_id').groupby(['author_id', 'published_year']).aggregate({'paper_id_x': ['nunique'], 'paper_id_y': ['count']})
 
 
 def answer3():
